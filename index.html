@@ -1045,7 +1045,7 @@
 
         gameState.activeVillains.forEach(v => {
             if (v.type === 'ade') {
-                if (Date.now() < gameState.noAdeUntil || newAdes.length >= 1) return;
+                if (Date.now() < gameState.noAdeUntil || newAdes.length >= 2) return;
                 const dirs = [{r:-1,c:0}, {r:1,c:0}, {r:0,c:-1}, {r:0,c:1}];
                 dirs.sort(() => Math.random() - 0.5);
 
