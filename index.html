@@ -188,7 +188,7 @@
         .combo-text {
             position: absolute; font-weight: 900; color: #FFFDF9;
             text-shadow: -1px -1px 0 #D2691E, 1px -1px 0 #D2691E, -1px 1px 0 #D2691E, 1px 1px 0 #D2691E, 0 0 12px #FFB6C1, 0 0 22px #FAD6A5;
-            pointer-events: none; z-index: 30; white-space: nowrap; animation: comboFly 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            pointer-events: none; z-index: 30; white-space: nowrap; animation: comboFly 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         @keyframes comboFly {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
@@ -511,7 +511,7 @@
             const bgm = document.getElementById('bgm');
             if (bgm && !bgmSource) {
                 bgmGain = audioCtx.createGain();
-                bgmGain.gain.value = 0.1;
+                bgmGain.gain.value = 0.2;
                 bgmGain.connect(audioCtx.destination);
                 bgmSource = audioCtx.createMediaElementSource(bgm);
                 bgmSource.connect(bgmGain);
@@ -1070,7 +1070,7 @@
                 const nr = v.r + dir.r, nc = v.c + dir.c;
                 if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !gameState.activeVillains.some(av => av.r === nr && av.c === nc) && !newAdes.some(av => av.r === nr && av.c === nc)) {
                     v.r = nr; v.c = nc;
-                    showToast('🥎 【声东击西】闪现换位！');
+                    showToast('🥎 【西装暴徒】闪现换位！');
                 }
             }
         });
