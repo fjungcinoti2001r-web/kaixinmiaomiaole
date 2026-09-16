@@ -1666,7 +1666,7 @@
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(()=> t.style.opacity = 0, 2000); }
     function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
-    function generatePosterDataURL(isEasterEgg = false) {
+    async function generatePosterDataURL(isEasterEgg = false) {
         const canvas = document.createElement('canvas');
         canvas.width = 680;
         canvas.height = 840;
@@ -1696,8 +1696,22 @@
         ctx.fillText(isEasterEgg ? '故意呢吧' : '开心苗苗乐', 340, 160);
 
         const currentData = EVOLUTION[gameState.currentStage];
-        ctx.font = '110px Apple Color Emoji, Segoe UI Emoji, sans-serif';
-        ctx.fillText(currentData.fallback || '👦', 340, 300);
+        // 成绩单使用当前形态的真实立绘，图片加载失败时才回退到 emoji。
+        const portrait = await new Promise(resolve => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => resolve(null);
+            image.src = currentData.avatar;
+        });
+        if (portrait) {
+            const maxWidth = 220, maxHeight = 150;
+            const scale = Math.min(maxWidth / portrait.naturalWidth, maxHeight / portrait.naturalHeight);
+            const width = portrait.naturalWidth * scale, height = portrait.naturalHeight * scale;
+            ctx.drawImage(portrait, 340 - width / 2, 190, width, height);
+        } else {
+            ctx.font = '110px Apple Color Emoji, Segoe UI Emoji, sans-serif';
+            ctx.fillText(currentData.fallback || '👦', 340, 300);
+        }
 
         ctx.fillStyle = '#FFF0F5';
         ctx.strokeStyle = '#FFB6C1';
@@ -1746,7 +1760,7 @@
         ctx.closePath();
     }
 
-    function openPosterModal(isEasterEgg = false) {
+    async function openPosterModal(isEasterEgg = false) {
         const mask = document.getElementById('poster-mask');
         const captureArea = document.getElementById('capture-area');
         const finalImg = document.getElementById('final-poster-img');
@@ -1755,7 +1769,7 @@
         mask.style.display = 'flex';
         captureArea.style.display = 'none';
 
-        const imgData = generatePosterDataURL(isEasterEgg);
+        const imgData = await generatePosterDataURL(isEasterEgg);
         finalImg.src = imgData;
         finalImg.style.display = 'block';
 
