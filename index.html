@@ -1159,7 +1159,7 @@
 
     document.getElementById('ally-status').onclick = () => {
         if (!gameState.allyReady) {
-            showToast('⏳ 友军正在路上，请通过消除攻击反派积攒能量 (当前 ' + gameState.allyCharge + '/3)');
+            showToast('⏳ 友军正在路上！ (当前 ' + gameState.allyCharge + '/3)');
             return;
         }
         openAllyModal();
@@ -1313,7 +1313,7 @@
         const allyStatus = document.getElementById('ally-status');
         if (gameState.allyReady) {
             allyStatus.className = 'ready-glow';
-            allyStatus.innerText = `✨ 点此释放大招！`;
+            allyStatus.innerText = `✨ 点击召唤友军！`;
         } else {
             allyStatus.className = '';
             allyStatus.innerText = `🤝 蓄能 (${gameState.allyCharge}/3)`;
