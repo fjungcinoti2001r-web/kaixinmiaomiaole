@@ -1014,11 +1014,30 @@
 
     function checkDeadlock() {
         if (gameState.isGameOver) return true;
-        // 必须先完成已有三连，避免将尚未落定的棋盘判负。
-        if (analyzeMatches().toRemove.size > 0) return false;
-        return findAValidMove() ? false : finishDeadlock();
-    }
 
+        // 如果盘面上还有连续消除的动作未落定，等待消除完成
+        if (analyzeMatches().toRemove.size > 0) return false;
+
+        // 🌟 恢复无解自动洗牌：只要没有任何一步可消，立即自动打乱重排普通棋子
+        if (!findAValidMove()) {
+            showToast('🔄 盘面无解，自动洗牌');
+            playCuteSFX('explode');
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    // 保留反派格子，仅重新打乱普通消除棋子
+                    if (gameState.activeVillains.some(v => v.r === r && v.c === c)) continue;
+                    let type = TYPES[Math.floor(Math.random() * TYPES.length)];
+                    board[r][c] = { type, effect: 'none' };
+                    updateTileDOMVisual(r, c, board[r][c]);
+                }
+            }
+            // 递归再次检测，确保洗牌后生成的盘面必须有解
+            if (!findAValidMove()) {
+                return checkDeadlock();
+            }
+        }
+        return false;
+    }
     function spawnVillainIfNeeded() {
         if (gameState.isGameOver) return;
         if (gameState.activeVillains.filter(v => v.type !== 'ade').length < DIFFICULTY.maxRegularVillains && Math.random() < DIFFICULTY.spawnChance) {
