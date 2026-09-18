@@ -1012,32 +1012,56 @@
         return true;
     }
 
-    function checkDeadlock() {
-        if (gameState.isGameOver) return true;
-
-        // 如果盘面上还有连续消除的动作未落定，等待消除完成
-        if (analyzeMatches().toRemove.size > 0) return false;
-
-        // 🌟 恢复无解自动洗牌：只要没有任何一步可消，立即自动打乱重排普通棋子
-        if (!findAValidMove()) {
-            showToast('🔄 盘面无解，自动洗牌');
-            playCuteSFX('explode');
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    // 保留反派格子，仅重新打乱普通消除棋子
-                    if (gameState.activeVillains.some(v => v.r === r && v.c === c)) continue;
-                    let type = TYPES[Math.floor(Math.random() * TYPES.length)];
-                    board[r][c] = { type, effect: 'none' };
-                    updateTileDOMVisual(r, c, board[r][c]);
+    // 有效交换至少需要：三个连续空位，以及其中一格旁、三连之外的来源格。
+    // 不依赖棋子颜色，直接判断反派占位后是否还可能生成有效走法。
+    function findShufflePattern() {
+        const blocked = new Set(gameState.activeVillains.map(v => v.r + ',' + v.c));
+        const free = (r,c) => r >= 0 && r < ROWS && c >= 0 && c < COLS && !blocked.has(r + ',' + c);
+        const patterns = [];
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+            for (const [dr,dc] of [[0,1],[1,0]]) {
+                const line = [0,1,2].map(i => [r+dr*i,c+dc*i]);
+                if (!line.every(([rr,cc]) => free(rr,cc))) continue;
+                for (const target of line) for (const [ar,ac] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+                    const donor = [target[0]+ar,target[1]+ac];
+                    if (free(...donor) && !line.some(([rr,cc]) => rr===donor[0] && cc===donor[1])) patterns.push({line,target,donor});
                 }
             }
-            // 递归再次检测，确保洗牌后生成的盘面必须有解
-            if (!findAValidMove()) {
-                return checkDeadlock();
+        }
+        return patterns.length ? patterns[Math.floor(Math.random()*patterns.length)] : null;
+    }
+
+    function checkDeadlock() {
+        if (gameState.isGameOver) return true;
+        if (analyzeMatches().toRemove.size > 0 || findAValidMove()) return false;
+        const pattern = findShufflePattern();
+        if (!pattern) return finishDeadlock();
+
+        const blocked = new Set(gameState.activeVillains.map(v => v.r + ',' + v.c));
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+            if (!blocked.has(r+','+c)) board[r][c] = null;
+        }
+        const typeIndex = Math.floor(Math.random()*TYPES.length);
+        const matchType = TYPES[typeIndex], otherType = TYPES[(typeIndex+1)%TYPES.length];
+        for (const [r,c] of pattern.line) board[r][c] = {type:matchType,effect:'none'};
+        board[pattern.target[0]][pattern.target[1]] = {type:otherType,effect:'none'};
+        board[pattern.donor[0]][pattern.donor[1]] = {type:matchType,effect:'none'};
+
+        // 保证预置交换可消；其余格子随机填色，同时避免开局已有三连。
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+            if (blocked.has(r+','+c) || board[r][c]) continue;
+            const offset = Math.floor(Math.random()*TYPES.length);
+            for (let i=0;i<TYPES.length;i++) {
+                board[r][c] = {type:TYPES[(offset+i)%TYPES.length],effect:'none'};
+                if (analyzeMatches().toRemove.size === 0) break;
             }
         }
+        refreshAllDOMVisuals();
+        showToast('盘面无解，已自动刷新，不消耗道具');
+        playCuteSFX('explode');
         return false;
     }
+
     function spawnVillainIfNeeded() {
         if (gameState.isGameOver) return;
         if (gameState.activeVillains.filter(v => v.type !== 'ade').length < DIFFICULTY.maxRegularVillains && Math.random() < DIFFICULTY.spawnChance) {
